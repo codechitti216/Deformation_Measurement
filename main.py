@@ -6,11 +6,28 @@ import pandas as pd
 def euclidean_distance(point1, point2):
     return np.sqrt(((point1[0] - point2[0]) ** 2) + ((point1[1] - point2[1]) ** 2))
 
+
+
 def distances(lst):
     List = []
     for i in lst:
         List.append(euclidean_distance(i[0][1], i[1][1]))
     return List
+
+def draw_line_and_distance(frame, point1, point2):
+    # Draw line between the points on the frame
+    cv2.line(frame, point1, point2, (0, 255, 0), 2)
+    
+    # Calculate Euclidean distance between the points
+    distance = euclidean_distance(point1, point2)
+    
+    # Put the distance value beside the line
+    cv2.putText(frame, f'{distance:.2f}', ((point1[0] + point2[0]) // 2, (point1[1] + point2[1]) // 2), 
+    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    
+    # Show the frame with the line and distance
+    cv2.imshow('Frame with Line and Distance', frame)
+
 
 def contour_list(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -34,6 +51,7 @@ def contour_list(frame):
     # cv2.destroyAllWindows()
     return frame_points
 
+
 def Show_image(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # Apply thresholding
@@ -52,6 +70,23 @@ def Show_image(frame):
     cv2.imshow("FRAME", frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def return_image(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # Apply thresholding
+    _, binary = cv2.threshold(gray, 100, 200, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)        
+
+    contour_name = 0
+    for idx, contour in enumerate(contours):
+        M = cv2.moments(contour)
+        contour_name += 1
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            cv2.circle(frame, (cX, cY), 1, (0, 0, 255), -1)
+            cv2.putText(frame, f"{contour_name}", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    return frame
     
     
 def highlight_points(frame,coordinates,text):
@@ -64,8 +99,6 @@ video_path = 'C:/Users/SURYA/Desktop/Surya/code_raja_code/ComputerVisionProject_
 cap = cv2.VideoCapture(video_path)
 
 frame_id = 0
-
-pairs = []
 
 interested_points = []
 
@@ -91,6 +124,8 @@ while True:
     frame1 = frame.copy()
     if frame_id == 1:
         Show_image(frame2)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         spl_frame = frame.copy()
         initial_list_of_points = contour_list(frame)
         print("Enter the number of lines. ")
@@ -100,32 +135,33 @@ while True:
             user_input = input()
             points = user_input.split()
             interested_points.append([initial_list_of_points[int(points[0])-1],initial_list_of_points[int(points[1])-1]])
-            # print(initial_list_of_points[int(points[0])-1])
-            # print(type(initial_list_of_points[int(points[0])]))
+            print(interested_points)         
             spl_frame = highlight_points(spl_frame,initial_list_of_points[int(points[0])][1],points[0])
             spl_frame = highlight_points(spl_frame,initial_list_of_points[int(points[1])][1],points[1])
     else:
+        frame1 = return_image(frame1)
         frame_points = contour_list(frame)
         for i in frame_points:
             for j in interested_points:
-                if euclidean_distance(i[1],j[0][1]) < 5:
+                if euclidean_distance(i[1],j[0][1]) < 10:
                     j[0][0] = i[0]
                     j[0][1] = i[1]
-                if euclidean_distance(i[1],j[1][1]) < 5:
+                if euclidean_distance(i[1],j[1][1]) < 10:
                     j[1][0] = i[0]
                     j[1][1] = i[1]
         for i in interested_points:
             frame1 = highlight_points(frame1,i[0][1],i[0][0])
             frame1 = highlight_points(frame1,i[1][1],i[1][0])
+            draw_line_and_distance(frame1,i[0][1],i[1][1])
         cv2.imshow("FRAME", frame1)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-    # print(distances(interested_points))
+        cv2.waitKey(50)
     DISTANCES.append(distances(interested_points))
+cv2.waitKey(0)
+cv2.destroyAllWindows
 # print(DISTANCES)
 print("````````````````````````````````````````````")
 
-scale = 4/DISTANCES[0][0]
+scale = 40/DISTANCES[0][0]
 print(scale)
 
 for i in range(len(DISTANCES[0])):
@@ -133,24 +169,14 @@ for i in range(len(DISTANCES[0])):
     for j in range(len(DISTANCES)):
         temp.append(DISTANCES[j][i]*scale)
     LINE_WISE_NORMALIZED_DISTANCES.append(temp)
-# print(LINE_WISE_NORMALIZED_DISTANCES)
 
-# print(len(LINE_WISE_NORMALIZED_DISTANCES))
-
-
-# print(TIME_STAMPS)
-
-# print("****************")
-
-# print(len(TIME_STAMPS))
 
 for i in LINE_WISE_NORMALIZED_DISTANCES:
     temp = []
     for j in i:
-        temp.append(4-j)
+        temp.append(j)
     LINE_WISE_ERRORS_IN_NORMALIZED_DISTANCES.append(temp)
     
-
 
 print(len(LINE_WISE_ERRORS_IN_NORMALIZED_DISTANCES))
 
@@ -167,7 +193,9 @@ for i in range(len(LINE_WISE_ERRORS_IN_NORMALIZED_DISTANCES[0])):
     avg = avg/n
     print(avg)
     AVG.append(avg)
+    
 print(len(AVG))
+
 LINE_WISE_ERRORS_IN_NORMALIZED_DISTANCES.append(AVG)
 
 LINE_WISE_ERRORS_IN_NORMALIZED_DISTANCES.insert(0,TIME_STAMPS)
