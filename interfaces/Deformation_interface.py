@@ -215,10 +215,23 @@ def plain_frames_extract(video_path):
 
 
 def save_uploaded_file(uploaded_file):
-    file_path = os.path.join("../data", uploaded_file.name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    return file_path
+    try:
+        # Define a directory to save the uploaded file
+        save_dir = "uploads"
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+            
+        # Create the file path
+        file_path = os.path.join(save_dir, uploaded_file.name)
+        
+        # Save the file
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+            
+        return file_path
+    except Exception as e:
+        st.error(f"Error saving file: {e}")
+        return None
 
 def calculate_scale(points,actual_length):
     scale = actual_length/euclidean_distance(points[0][1],points[1][1])
